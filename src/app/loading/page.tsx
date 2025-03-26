@@ -31,7 +31,7 @@ export default function LoadingPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Researching Your Content</h1>
           <p className="mt-4 text-lg text-gray-600">
-            We're gathering the most relevant information to make your content exceptional.
+            We&apos;re gathering the most relevant information to make your content exceptional.
           </p>
         </div>
         

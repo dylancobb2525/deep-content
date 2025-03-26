@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ResearchResults from '@/components/ResearchResults';
 import ContentOutput from '@/components/ContentOutput';
@@ -43,110 +43,8 @@ export default function ResearchResultsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   
-  useEffect(() => {
-    // Load state from sessionStorage
-    const storedContentState = sessionStorage.getItem('contentState');
-    const storedQuestions = sessionStorage.getItem('questions');
-    
-    if (!storedContentState || !storedQuestions) {
-      // Redirect back to step 1 if no state is found
-      router.push('/');
-      return;
-    }
-    
-    const parsedContentState = JSON.parse(storedContentState) as ContentState;
-    const parsedQuestions = JSON.parse(storedQuestions) as Question[];
-    
-    setContentState(parsedContentState);
-    setQuestions(parsedQuestions);
-    
-    // Generate research and content
-    generateResearch(parsedContentState, parsedQuestions);
-  }, [router]);
-  
-  // Save content to Firebase when user is logged in and content is generated
-  useEffect(() => {
-    const saveContent = async () => {
-      if (!user || !contentState || !generatedContent || savedToFirebase || sessionId) return;
-      
-      try {
-        const title = contentState.idea.substring(0, 50) + (contentState.idea.length > 50 ? '...' : '');
-        
-        const sessionData = await saveContentSession({
-          userId: user.uid,
-          title,
-          contentType: contentState.contentType,
-          idea: contentState.idea,
-          questions,
-          transcript: contentState.transcript || undefined,
-          research,
-          generatedContent,
-          contentSource
-        });
-        
-        setSavedToFirebase(true);
-        setSessionId(sessionData.id as string);
-        setSaveError(null);
-      } catch (error) {
-        console.error('Error saving content:', error);
-        setSaveError('Failed to save your content to your account.');
-        setSavedToFirebase(false);
-      }
-    };
-    
-    if (user && generatedContent && !loadingContent) {
-      saveContent();
-    }
-  }, [user, contentState, questions, research, generatedContent, loadingContent, contentSource, savedToFirebase, sessionId]);
-  
-  // Generate research
-  const generateResearch = async (contentState: ContentState, questions: Question[]) => {
-    setLoadingResearch(true);
-    try {
-      const response = await fetch('/api/perplexity/research', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          idea: contentState.idea,
-          contentType: contentState.contentType,
-          questions,
-          transcript: contentState.transcript || undefined,
-        }),
-      });
-      
-      if (!response.ok) throw new Error('Failed to generate research');
-      
-      const data = await response.json();
-      setResearch(data.research);
-      
-      // After getting research, generate content
-      generateContent(contentState, questions, data.research);
-      
-    } catch (error) {
-      console.error('Error generating research:', error);
-      // Set fallback research
-      const fallbackResearch = `[Demo research]\n\n` +
-        `Based on the content idea and questions, here's what research shows:\n\n` +
-        `1. Key statistics related to this topic\n` +
-        `2. Expert opinions from leading authorities\n` +
-        `3. Case studies and examples that illustrate important points\n` +
-        `4. Recent developments and trends in this area\n` +
-        `5. Historical context that helps frame the discussion\n\n` +
-        `This demonstrates how the deep research feature would work with a valid API connection.`;
-      
-      setResearch(fallbackResearch);
-      
-      // Still try to generate content with fallback research
-      generateContent(contentState, questions, fallbackResearch);
-    } finally {
-      setLoadingResearch(false);
-    }
-  };
-  
-  // Generate final content
-  const generateContent = async (contentState: ContentState, questions: Question[], researchText: string) => {
+  // Define generateContent first as a reference to be used in generateResearch
+  const generateContent = useCallback(async (contentState: ContentState, questions: Question[], researchText: string) => {
     setLoadingContent(true);
     try {
       console.log("Generating content with:", {
@@ -228,8 +126,110 @@ Your original inputs, answers, and research have been saved and can still be use
     } finally {
       setLoadingContent(false);
     }
-  };
-
+  }, []);
+  
+  // Generate research with reference to generateContent
+  const generateResearch = useCallback(async (contentState: ContentState, questions: Question[]) => {
+    setLoadingResearch(true);
+    try {
+      const response = await fetch('/api/perplexity/research', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          idea: contentState.idea,
+          contentType: contentState.contentType,
+          questions,
+          transcript: contentState.transcript || undefined,
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to generate research');
+      
+      const data = await response.json();
+      setResearch(data.research);
+      
+      // After getting research, generate content
+      generateContent(contentState, questions, data.research);
+      
+    } catch (error) {
+      console.error('Error generating research:', error);
+      // Set fallback research
+      const fallbackResearch = `[Demo research]\n\n` +
+        `Based on the content idea and questions, here&apos;s what research shows:\n\n` +
+        `1. Key statistics related to this topic\n` +
+        `2. Expert opinions from leading authorities\n` +
+        `3. Case studies and examples that illustrate important points\n` +
+        `4. Recent developments and trends in this area\n` +
+        `5. Historical context that helps frame the discussion\n\n` +
+        `This demonstrates how the deep research feature would work with a valid API connection.`;
+      
+      setResearch(fallbackResearch);
+      
+      // Still try to generate content with fallback research
+      generateContent(contentState, questions, fallbackResearch);
+    } finally {
+      setLoadingResearch(false);
+    }
+  }, [generateContent]);
+  
+  useEffect(() => {
+    // Load state from sessionStorage
+    const storedContentState = sessionStorage.getItem('contentState');
+    const storedQuestions = sessionStorage.getItem('questions');
+    
+    if (!storedContentState || !storedQuestions) {
+      // Redirect back to step 1 if no state is found
+      router.push('/');
+      return;
+    }
+    
+    const parsedContentState = JSON.parse(storedContentState) as ContentState;
+    const parsedQuestions = JSON.parse(storedQuestions) as Question[];
+    
+    setContentState(parsedContentState);
+    setQuestions(parsedQuestions);
+    
+    // Generate research and content
+    generateResearch(parsedContentState, parsedQuestions);
+  }, [router, generateResearch]);
+  
+  // Save content to Firebase when user is logged in and content is generated
+  useEffect(() => {
+    const saveContent = async () => {
+      if (!user || !contentState || !generatedContent || savedToFirebase || sessionId) return;
+      
+      try {
+        const title = contentState.idea.substring(0, 50) + (contentState.idea.length > 50 ? '...' : '');
+        
+        const sessionData = await saveContentSession({
+          userId: user.uid,
+          title,
+          contentType: contentState.contentType,
+          idea: contentState.idea,
+          questions,
+          transcript: contentState.transcript || undefined,
+          research,
+          generatedContent,
+          contentSource
+        });
+        
+        setSavedToFirebase(true);
+        setSessionId(sessionData.id as string);
+        setSaveError(null);
+      } catch (error) {
+        console.error('Error saving content:', error);
+        setSaveError('Failed to save your content to your account.');
+        setSavedToFirebase(false);
+      }
+    };
+    
+    if (user && generatedContent && !loadingContent) {
+      saveContent();
+    }
+  }, [user, contentState, questions, research, generatedContent, loadingContent, contentSource, savedToFirebase, sessionId]);
+  
   // Regenerate content with user feedback
   const regenerateContent = async (feedback: string) => {
     if (!contentState || !research) return;

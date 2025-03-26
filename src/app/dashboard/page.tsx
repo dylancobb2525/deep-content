@@ -593,7 +593,7 @@ export default function Dashboard() {
               </svg>
               <div>
                 <p className="font-medium">{error}</p>
-                <p className="text-sm mt-1">Try using the "Repair All Content" button to resolve data issues, or refresh the page.</p>
+                <p className="text-sm mt-1">Try using the &quot;Repair All Content&quot; button to resolve data issues, or refresh the page.</p>
               </div>
             </div>
           )}

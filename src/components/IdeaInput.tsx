@@ -16,9 +16,9 @@ export default function IdeaInput({ idea, onIdeaChange }: IdeaInputProps) {
 
   return (
     <div className="w-full">
-      <h2 className="text-xl font-semibold mb-2">What's your content idea?</h2>
+      <h2 className="text-xl font-semibold mb-2">What&apos;s your content idea?</h2>
       <p className="text-gray-600 mb-4">
-        Describe your content idea in detail. What's the main topic? What key points do you want to cover?
+        Describe your content idea in detail. What&apos;s the main topic? What key points do you want to cover?
       </p>
       <div className="relative">
         <textarea
